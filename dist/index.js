@@ -44313,6 +44313,7 @@ const { CID } = __nccwpck_require__(6447);
 const EVER_TOKEN = core.getInput("EVER_TOKEN");
 const EVER_PROJECT_ID = core.getInput("EVER_PROJECT_ID");
 const EVER_PROJECT_NAME = core.getInput("EVER_PROJECT_NAME");
+const EVER_PROJECT_PLAT = core.getInput("EVER_PROJECT_PLAT");
 const BUILD_LOCATION = core.getInput("BUILD_LOCATION");
 
 if (!EVER_TOKEN) core.setFailed(`EVER_TOKEN is required, but missing`);
@@ -44343,8 +44344,9 @@ const pinTo4everland = async () => {
   let pid = EVER_PROJECT_ID;
   if (!pid) {
     let data = new FormData();
-    data.append("name", EVER_PROJECT_NAME);
     data.append("mode", 1);
+    data.append("name", EVER_PROJECT_NAME);
+    data.append("platform", EVER_PROJECT_PLAT || "IPFS");
     const res = await postApi("/project", data);
     if (res.data.code != 200) {
       console.log(res.data);

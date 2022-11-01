@@ -13,6 +13,9 @@ inputs:
   EVER_PROJECT_NAME: # id of input
     description: "4EVERLAND hosting project name"
     required: false
+  EVER_PROJECT_PLAT: # id of input
+    description: "4EVERLAND hosting project platform"
+    required: false
 
 outputs:
   hash: # id of output
