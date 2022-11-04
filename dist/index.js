@@ -44374,9 +44374,15 @@ const pinTo4everland = async () => {
   }
   let hash = res.data.content.fileHash;
   if (/^Qm/i.test(hash)) {
-    return CID.parse(hash).toV1().toString();
+    hash = CID.parse(hash).toV1().toString();
   }
-  return hash;
+
+  return {
+    hash,
+    projLink: `https://dashboard.4everland.org/hosting/project/${
+      EVER_PROJECT_NAME || pid
+    }/${pid}`,
+  };
 };
 
 function zipProject(dirPath) {
@@ -44403,10 +44409,12 @@ function zipProject(dirPath) {
 }
 
 pinTo4everland()
-  .then(async (hash) => {
+  .then(async (result) => {
+    const { hash, projLink } = result;
     core.setOutput("hash", hash);
     const uri = `https://${hash}.ipfs.4everland.io/`;
     core.setOutput("uri", uri);
+    core.setOutput("projLink", projLink);
     const GITHUB_TOKEN = core.getInput("GITHUB_TOKEN");
     const PR_NUM = Number(core.getInput("PULL_REQUEST_NUMBER"));
     if (GITHUB_TOKEN) {

@@ -18,10 +18,12 @@ inputs:
     required: false
 
 outputs:
-  hash: # id of output
+  hash:
     description: "The ipfs hash"
   uri:
     description: "A uri embeddign the hash in a public gateway"
+  projLink:
+    description: "The project link"
 runs:
   using: "node16"
   main: "dist/index.js"
