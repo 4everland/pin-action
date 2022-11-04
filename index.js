@@ -39,11 +39,12 @@ function postApi(url, data, opt) {
 
 const pinTo4everland = async () => {
   let pid = EVER_PROJECT_ID;
+  const plat = EVER_PROJECT_PLAT || "IPFS";
   if (!pid) {
     let data = new FormData();
     data.append("mode", 1);
     data.append("name", EVER_PROJECT_NAME);
-    data.append("platform", EVER_PROJECT_PLAT || "IPFS");
+    data.append("platform", plat);
     const res = await postApi("/project", data);
     if (res.data.code != 200) {
       console.log(res.data);
@@ -75,6 +76,7 @@ const pinTo4everland = async () => {
   }
 
   return {
+    plat,
     hash,
     projLink: `https://dashboard.4everland.org/hosting/project/${
       EVER_PROJECT_NAME || pid
@@ -107,7 +109,7 @@ function zipProject(dirPath) {
 
 pinTo4everland()
   .then(async (result) => {
-    const { hash, projLink } = result;
+    const { plat, hash, projLink } = result;
     core.setOutput("hash", hash);
     const uri = `https://${hash}.ipfs.4everland.io/`;
     core.setOutput("uri", uri);
@@ -115,24 +117,25 @@ pinTo4everland()
     const GITHUB_TOKEN = core.getInput("GITHUB_TOKEN");
     const PR_NUM = Number(core.getInput("PULL_REQUEST_NUMBER"));
     if (GITHUB_TOKEN) {
+      const body = `- ${plat} hash: ${hash}\n- ${plat} preview link: ${uri} \n - 4EVERLAND project link: ${projLink}`;
       const octokit = github.getOctokit(GITHUB_TOKEN);
       if (github.context.eventName == "pull_request") {
         await octokit.rest.issues.createComment({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
-          body: `- Ipfs hash: ${hash}\n- Ipfs preview link: ${uri}`,
+          body,
         });
       } else if (PR_NUM != 0) {
         await octokit.rest.issues.createComment({
           ...context.repo,
           issue_number: PR_NUM,
-          body: `- Ipfs hash: ${hash}\n- Ipfs preview link: ${uri}`,
+          body,
         });
       } else {
         await octokit.rest.repos.createCommitComment({
           ...context.repo,
           commit_sha: github.context.sha,
-          body: `This commit was deployed on ipfs\n- ipfs hash: ${hash}\n- ipfs preview link: ${uri}`,
+          body: "This commit was deployed on 4EVERLAND.\n" + body,
         });
       }
     }

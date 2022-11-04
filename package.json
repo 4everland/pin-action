@@ -1,7 +1,7 @@
 {
   "name": "pin4ever-action",
   "version": "1.0.0",
-  "description": "4EVERLAND github action",
+  "description": "4EVERLAND github pin action",
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build index.js --license LICENSE",

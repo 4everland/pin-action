@@ -1,20 +1,26 @@
 name: "4EVERLAND ipfs upload"
 description: "Upload folder to ipfs"
 inputs:
-  BUILD_LOCATION: # id of input
+  BUILD_LOCATION:
     description: "Folder path to upload"
     required: true
-  EVER_TOKEN: # id of input
+  EVER_TOKEN:
     description: "4EVERLAND token"
     required: true
-  EVER_PROJECT_ID: # id of input
+  EVER_PROJECT_ID:
     description: "4EVERLAND hosting project id"
     required: false
-  EVER_PROJECT_NAME: # id of input
+  EVER_PROJECT_NAME:
     description: "4EVERLAND hosting project name"
     required: false
-  EVER_PROJECT_PLAT: # id of input
+  EVER_PROJECT_PLAT:
     description: "4EVERLAND hosting project platform"
+    required: false
+  PULL_REQUEST_NUMBER:
+    description: "Github pull request number"
+    required: false
+  GITHUB_TOKEN:
+    description: "Github token"
     required: false
 
 outputs:
@@ -23,7 +29,7 @@ outputs:
   uri:
     description: "A uri embeddign the hash in a public gateway"
   projLink:
-    description: "The project link"
+    description: "The project link on 4everland"
 runs:
   using: "node16"
   main: "dist/index.js"
