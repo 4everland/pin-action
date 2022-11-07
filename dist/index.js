@@ -44357,19 +44357,13 @@ const pinTo4everland = async () => {
   }
   let data = new FormData();
   data.append("projectId", pid);
-  console.log("zip...");
   const zipPath = await zipProject(BUILD_LOCATION);
-  console.log("zip", zipPath);
+  // console.log("zip", zipPath);
   let file = fs.createReadStream(zipPath);
   data.append("file", file);
-  console.log("deploy...");
-  const res = await postApi(`/deploy`, data, {
-    onUploadProgress: (progressEvent) => {
-      console.log(progressEvent);
-    },
-  });
+  const res = await postApi(`/deploy`, data);
   fs.unlinkSync(zipPath);
-  console.log("deploy end", res.data);
+  console.log("deployd", res.data);
   if (res.data.code != 200) {
     throw new Error(res.data.message);
   }
@@ -44417,6 +44411,7 @@ pinTo4everland()
     const uri = `https://${hash}.ipfs.4everland.io/`;
     core.setOutput("uri", uri);
     core.setOutput("projLink", projLink);
+    console.log("project link", projLink);
     const GITHUB_TOKEN = core.getInput("GITHUB_TOKEN");
     const PR_NUM = Number(core.getInput("PULL_REQUEST_NUMBER"));
     if (GITHUB_TOKEN) {
