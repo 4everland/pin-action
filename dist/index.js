@@ -1,6 +1,109 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 3898:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const Axios = __nccwpck_require__(6545);
+const FormData = __nccwpck_require__(4334);
+const archiver = __nccwpck_require__(3084);
+const fs = __nccwpck_require__(7147);
+const { CID } = __nccwpck_require__(6447);
+
+class PinApi {
+  constructor(token) {
+    this.axios = Axios.create({
+      baseURL: "https://cli-api.4everland.org",
+      headers: {
+        token,
+      },
+      maxBodyLength: Infinity,
+    });
+  }
+
+  async deploy(body) {
+    let { pid } = body;
+    const plat = body.plat || "IPFS";
+    if (!pid) {
+      let data = new FormData();
+      data.append("mode", 1);
+      data.append("name", body.name);
+      data.append("platform", plat);
+      const con = await this.postApi("/project", data);
+      pid = con.projectId;
+    }
+    let data = new FormData();
+    data.append("projectId", pid);
+    const zipPath = await this.zipProject(body.path);
+    let file = fs.createReadStream(zipPath);
+    data.append("file", file);
+    console.log("deploy...");
+    const con = await this.postApi(`/deploy`, data);
+    fs.unlinkSync(zipPath);
+    console.log("deployd", con);
+    let hash = con.fileHash;
+    if (/^Qm/i.test(hash)) {
+      hash = CID.parse(hash).toV1().toString();
+    }
+    return {
+      plat,
+      hash,
+      uri: this.getHashLink(hash, plat),
+      projLink: `https://dashboard.4everland.org/hosting/project/${
+        body.name || "project"
+      }/${pid}`,
+    };
+  }
+
+  getHashLink(cid, plat) {
+    if (!cid) return "";
+    if (plat == "IC") return `https://${cid}.raw.ic0.app/`;
+    if (plat == "AR") return `https://arweave.net/${cid}`;
+    return `https://${cid}.ipfs.4everland.io`;
+  }
+
+  async postApi(url, body, opt) {
+    const { data } = await this.axios.post(url, body, {
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${body._boundary}`,
+      },
+      ...opt,
+    });
+    if (data.code != 200) {
+      throw new Error(data.message);
+    }
+    return data.content;
+  }
+
+  zipProject(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+      throw new Error("File path does not exist:" + dirPath);
+    }
+    return new Promise((resolve, reject) => {
+      const zipPath = dirPath + "/4ever-hosting.zip";
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver("zip", {
+        zlib: { level: 9 },
+      });
+
+      output.on("close", function () {
+        resolve(zipPath);
+      });
+      archive.on("error", function (error) {
+        reject(error);
+      });
+      archive.pipe(output);
+      archive.directory(dirPath, false);
+      archive.finalize();
+    });
+  }
+}
+
+module.exports = PinApi;
+
+
+/***/ }),
+
 /***/ 7351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -44304,11 +44407,7 @@ var __webpack_exports__ = {};
 const core = __nccwpck_require__(2186);
 const github = __nccwpck_require__(5438);
 const { context } = __nccwpck_require__(3030);
-const Axios = __nccwpck_require__(6545);
-const fs = __nccwpck_require__(7147);
-const archiver = __nccwpck_require__(3084);
-const FormData = __nccwpck_require__(4334);
-const { CID } = __nccwpck_require__(6447);
+const PinApi = __nccwpck_require__(3898);
 
 const EVER_TOKEN = core.getInput("EVER_TOKEN");
 const EVER_PROJECT_ID = core.getInput("EVER_PROJECT_ID");
@@ -44323,88 +44422,15 @@ if (!EVER_PROJECT_ID && !EVER_PROJECT_NAME)
   );
 if (!BUILD_LOCATION) core.setFailed(`BUILD_LOCATION is required, but missing`);
 
-const axios = Axios.create({
-  baseURL: "https://cli-api.4everland.org",
-  headers: {
-    token: EVER_TOKEN,
-  },
-  maxBodyLength: Infinity,
-});
+const api = new PinApi(EVER_TOKEN);
 
-function postApi(url, data, opt) {
-  return axios.post(url, data, {
-    headers: {
-      "Content-Type": `multipart/form-data; boundary=${data._boundary}`,
-    },
-    ...opt,
-  });
-}
-
-const pinTo4everland = async () => {
-  let pid = EVER_PROJECT_ID;
-  const plat = EVER_PROJECT_PLAT || "IPFS";
-  if (!pid) {
-    let data = new FormData();
-    data.append("mode", 1);
-    data.append("name", EVER_PROJECT_NAME);
-    data.append("platform", plat);
-    const res = await postApi("/project", data);
-    if (res.data.code != 200) {
-      console.log(res.data);
-      throw new Error(res.data.message);
-    }
-    pid = res.data.content.projectId;
-  }
-  let data = new FormData();
-  data.append("projectId", pid);
-  const zipPath = await zipProject(BUILD_LOCATION);
-  // console.log("zip", zipPath);
-  let file = fs.createReadStream(zipPath);
-  data.append("file", file);
-  const res = await postApi(`/deploy`, data);
-  fs.unlinkSync(zipPath);
-  console.log("deployd", res.data);
-  if (res.data.code != 200) {
-    throw new Error(res.data.message);
-  }
-  let hash = res.data.content.fileHash;
-  if (/^Qm/i.test(hash)) {
-    hash = CID.parse(hash).toV1().toString();
-  }
-
-  return {
-    plat,
-    hash,
-    projLink: `https://dashboard.4everland.org/hosting/project/${
-      EVER_PROJECT_NAME || pid
-    }/${pid}`,
-  };
-};
-
-function zipProject(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    throw new Error("File path does not exist:" + dirPath);
-  }
-  return new Promise((resolve, reject) => {
-    const zipPath = dirPath + "/4ever-hosting.zip";
-    const output = fs.createWriteStream(zipPath);
-    const archive = archiver("zip", {
-      zlib: { level: 9 },
-    });
-
-    output.on("close", function () {
-      resolve(zipPath);
-    });
-    archive.on("error", function (error) {
-      reject(error);
-    });
-    archive.pipe(output);
-    archive.directory(dirPath, false);
-    archive.finalize();
-  });
-}
-
-pinTo4everland()
+api
+  .deploy({
+    pid: EVER_PROJECT_ID,
+    name: EVER_PROJECT_NAME,
+    plat: EVER_PROJECT_PLAT,
+    path: BUILD_LOCATION,
+  })
   .then(async (result) => {
     const { plat, hash, projLink } = result;
     core.setOutput("hash", hash);
